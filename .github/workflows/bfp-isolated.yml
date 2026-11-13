@@ -1,0 +1,82 @@
+name: BFP isolated verification 3142daac3b1d
+'on':
+  push:
+    branches:
+    - bfp-isolated-3142daac3b1d
+permissions: {}
+jobs:
+  buggy_build-tauri-renderer:
+    runs-on: ubuntu-latest
+    outputs:
+      probe: ${{ steps.write.outputs.probe }}
+    steps:
+    - id: write
+      run: echo "probe=available" >> "$GITHUB_OUTPUT"
+  buggy_create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      probe: ${{ steps.write.outputs.probe }}
+    steps:
+    - id: write
+      run: echo "probe=available" >> "$GITHUB_OUTPUT"
+  buggy_build-tauri:
+    runs-on: ubuntu-latest
+    needs:
+    - buggy_build-tauri-renderer
+    steps:
+    - name: Read create-release output
+      if: ${{ !cancelled() }}
+      env:
+        NEEDS_JSON: ${{ toJSON(needs) }}
+        PRODUCER: buggy_create-release
+      run: 'python - <<''PY''
+
+        import json, os
+
+        needs = json.loads(os.environ[''NEEDS_JSON''])
+
+        value = needs.get(os.environ[''PRODUCER''], {}).get(''outputs'', {}).get(''probe'')
+
+        print(f''producer output={value!r}'')
+
+        raise SystemExit(value != ''available'')
+
+        PY'
+  human_build-tauri-renderer:
+    runs-on: ubuntu-latest
+    outputs:
+      probe: ${{ steps.write.outputs.probe }}
+    steps:
+    - id: write
+      run: echo "probe=available" >> "$GITHUB_OUTPUT"
+  human_create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      probe: ${{ steps.write.outputs.probe }}
+    steps:
+    - id: write
+      run: echo "probe=available" >> "$GITHUB_OUTPUT"
+  human_build-tauri:
+    runs-on: ubuntu-latest
+    needs:
+    - human_create-release
+    - human_build-tauri-renderer
+    steps:
+    - name: Read create-release output
+      if: ${{ !cancelled() }}
+      env:
+        NEEDS_JSON: ${{ toJSON(needs) }}
+        PRODUCER: human_create-release
+      run: 'python - <<''PY''
+
+        import json, os
+
+        needs = json.loads(os.environ[''NEEDS_JSON''])
+
+        value = needs.get(os.environ[''PRODUCER''], {}).get(''outputs'', {}).get(''probe'')
+
+        print(f''producer output={value!r}'')
+
+        raise SystemExit(value != ''available'')
+
+        PY'
